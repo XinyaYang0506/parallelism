@@ -14,6 +14,7 @@
 typedef struct account {
   int balance;
   size_t transaction_count;
+  pthread_mutex_t mutex;
 } account_t;
 
 /*
@@ -39,6 +40,7 @@ size_t create_account (int starting_balance) {
   // Initialize the account information
   accounts[current_account].balance = starting_balance;
   accounts[current_account].transaction_count = 0;
+  mutex_init(&accounts[current_account].mutex);
 	
   // Return the account ID
   return current_account;
@@ -62,17 +64,22 @@ size_t get_transaction_count (size_t account) {
  * Add a transaction to the specified account
  */
 void do_transaction (size_t account, int amount) {
+  mutex_lock(&accounts[account].mutex);
   accounts[account].balance += amount;
   accounts[account].transaction_count++;
+  mutex_unlock(&accounts[account].mutex);
 }
 
 /*
  * Transfer money between two accounts
  */
 void do_transfer (size_t from_account, size_t to_account, int amount) {
+  mutex_lock(&accounts[from_account].mutex);
   accounts[from_account].balance -= amount;
   accounts[from_account].transaction_count++;
-	
+  mutex_unlock(&accounts[from_account].mutex);
+	mutex_lock(&accounts[to_account].mutex);
   accounts[to_account].balance += amount;
   accounts[to_account].transaction_count++;
+  mutex_unlock(&accounts[to_account].mutex);
 }
